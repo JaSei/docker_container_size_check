@@ -9,10 +9,7 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
-type config struct {
-	warn uint64
-	crit uint64
-}
+const VERSION = "0.1.4"
 
 var (
 	warn = kingpin.Flag("warn", "Warning treshold for image size").Short('w').Default("1GB").Bytes()
@@ -20,7 +17,7 @@ var (
 )
 
 func main() {
-	kingpin.Version("0.1.3")
+	kingpin.Version(VERSION)
 	kingpin.Parse()
 
 	defaultHeaders := map[string]string{"User-Agent": "engine-api-cli-1.0"}
