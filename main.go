@@ -1,13 +1,12 @@
 package main
 
 import (
-	"code.cloudfoundry.org/bytefmt"
-	"flag"
 	"fmt"
 	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types"
 	"github.com/olorin/nagiosplugin"
 	"golang.org/x/net/context"
+	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 type config struct {
@@ -15,28 +14,14 @@ type config struct {
 	crit uint64
 }
 
-func parseFlag() config {
-	var warn, crit string
-	flag.StringVar(&warn, "w", "1GB", "Warning treshold for image size")
-	flag.StringVar(&crit, "c", "10GB", "Critical treshold for image size")
-
-	flag.Parse()
-
-	num_warn, err := bytefmt.ToBytes(warn)
-	if err != nil {
-		nagiosplugin.Exit(nagiosplugin.UNKNOWN, fmt.Sprintf("convert warn to bytes: %s", err.Error()))
-	}
-
-	num_crit, err := bytefmt.ToBytes(crit)
-	if err != nil {
-		nagiosplugin.Exit(nagiosplugin.UNKNOWN, fmt.Sprintf("convert crit to bytes: %s", err.Error()))
-	}
-
-	return config{warn: num_warn, crit: num_crit}
-}
+var (
+	warn = kingpin.Flag("warn", "Warning treshold for image size").Short('w').Default("10GB").Bytes()
+	crit = kingpin.Flag("crit", "Critical treshold for image size").Short('c').Default("1GB").Bytes()
+)
 
 func main() {
-	check_conf := parseFlag()
+	kingpin.Version("0.1.2")
+	kingpin.Parse()
 
 	defaultHeaders := map[string]string{"User-Agent": "engine-api-cli-1.0"}
 	cli, err := client.NewClient("unix:///var/run/docker.sock", "v1.18", nil, defaultHeaders)
@@ -52,13 +37,13 @@ func main() {
 
 	check := nagiosplugin.NewCheck()
 	for _, c := range containers {
-		if (uint64)(c.SizeRw) >= check_conf.crit {
+		if c.SizeRw >= (int64)(*crit) {
 			check.AddResult(nagiosplugin.CRITICAL, fmt.Sprintf("%s-%s", c.ID, c.Image))
-		} else if (uint64)(c.SizeRw) >= check_conf.warn {
+		} else if c.SizeRw >= (int64)(*warn) {
 			check.AddResult(nagiosplugin.WARNING, fmt.Sprintf("%s-%s", c.ID, c.Image))
 		}
 
-		check.AddPerfDatum(fmt.Sprintf("%s-%s", c.ID, c.Image), "b", (float64)(c.SizeRw), (float64)(check_conf.warn), (float64)(check_conf.crit))
+		check.AddPerfDatum(fmt.Sprintf("%s-%s", c.ID, c.Image), "b", (float64)(c.SizeRw), (float64)(*warn), (float64)(*crit))
 	}
 
 	defer check.Finish()
