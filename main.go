@@ -15,12 +15,12 @@ type config struct {
 }
 
 var (
-	warn = kingpin.Flag("warn", "Warning treshold for image size").Short('w').Default("10GB").Bytes()
-	crit = kingpin.Flag("crit", "Critical treshold for image size").Short('c').Default("1GB").Bytes()
+	warn = kingpin.Flag("warn", "Warning treshold for image size").Short('w').Default("1GB").Bytes()
+	crit = kingpin.Flag("crit", "Critical treshold for image size").Short('c').Default("10GB").Bytes()
 )
 
 func main() {
-	kingpin.Version("0.1.2")
+	kingpin.Version("0.1.3")
 	kingpin.Parse()
 
 	defaultHeaders := map[string]string{"User-Agent": "engine-api-cli-1.0"}
