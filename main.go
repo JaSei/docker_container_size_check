@@ -63,7 +63,7 @@ func level(c types.Container, level int64, overrideLevelKey string) int64 {
 	if ok {
 		containerLevel, err := units.ParseBase2Bytes(newLevel)
 		if err == nil {
-			level = containerLevel
+			level = int64(containerLevel)
 		}
 	}
 
