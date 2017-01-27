@@ -1,3 +1,9 @@
+// Docker container size nagios/icinga check
+//
+// Check all containers on host. Default thresholds are 1GB warning and 10GB critical.
+//
+//	docker_container_size_check -w 100MB -c 2GB
+
 package main
 
 import (
@@ -7,9 +13,10 @@ import (
 	"github.com/olorin/nagiosplugin"
 	"golang.org/x/net/context"
 	"gopkg.in/alecthomas/kingpin.v2"
+	"github.com/alecthomas/units"
 )
 
-const VERSION = "0.1.4"
+const VERSION = "0.2.0"
 
 var (
 	warn = kingpin.Flag("warn", "Warning treshold for image size").Short('w').Default("1GB").Bytes()
@@ -34,16 +41,31 @@ func main() {
 
 	check := nagiosplugin.NewCheck()
 	for _, c := range containers {
-		if c.SizeRw >= (int64)(*crit) {
+		warnLevel := level(c, (int64(*warn)), "CHECK_DOCKER_CONTAINER_SIZE_WARN")
+		critLevel := level(c, (int64(*crit)), "CHECK_DOCKER_CONTAINER_SIZE_CRIT")
+
+		if  c.SizeRw >= warnLevel {
 			check.AddResult(nagiosplugin.CRITICAL, fmt.Sprintf("%s-%s", c.ID, c.Image))
-		} else if c.SizeRw >= (int64)(*warn) {
+		} else if c.SizeRw >= critLevel {
 			check.AddResult(nagiosplugin.WARNING, fmt.Sprintf("%s-%s", c.ID, c.Image))
 		}
 
-		check.AddPerfDatum(fmt.Sprintf("%s-%s", c.ID, c.Image), "b", (float64)(c.SizeRw), (float64)(*warn), (float64)(*crit))
+		check.AddPerfDatum(fmt.Sprintf("%s-%s", c.ID, c.Image), "b", (float64)(c.SizeRw), (float64)(warnLevel), (float64)(critLevel))
 	}
 
 	defer check.Finish()
 
 	check.AddResult(nagiosplugin.OK, "No large container(s)")
+}
+
+func level(c types.Container, level int64, overrideLevelKey string) int64 {
+	newLevel, ok := c.Labels[overrideLevelKey]
+	if ok {
+		containerLevel, err := units.ParseBase2Bytes(newLevel)
+		if err == nil {
+			level = containerLevel
+		}
+	}
+
+	return level
 }
