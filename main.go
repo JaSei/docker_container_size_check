@@ -8,12 +8,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/docker/docker/client"
+	"github.com/alecthomas/units"
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/client"
 	"github.com/olorin/nagiosplugin"
 	"golang.org/x/net/context"
 	"gopkg.in/alecthomas/kingpin.v2"
-	"github.com/alecthomas/units"
 )
 
 const VERSION = "0.2.0"
@@ -44,7 +44,7 @@ func main() {
 		warnLevel := level(c, (int64(*warn)), "CHECK_DOCKER_CONTAINER_SIZE_WARN")
 		critLevel := level(c, (int64(*crit)), "CHECK_DOCKER_CONTAINER_SIZE_CRIT")
 
-		if  c.SizeRw >= warnLevel {
+		if c.SizeRw >= warnLevel {
 			check.AddResult(nagiosplugin.CRITICAL, fmt.Sprintf("%s-%s", c.ID, c.Image))
 		} else if c.SizeRw >= critLevel {
 			check.AddResult(nagiosplugin.WARNING, fmt.Sprintf("%s-%s", c.ID, c.Image))
