@@ -2,7 +2,7 @@ package main
 
 import (
 	"testing"
-	"github.com/docker/engine-api/types"
+	"github.com/docker/docker/api/types"
 	"github.com/alecthomas/units"
 	"github.com/stretchr/testify/assert"
 )

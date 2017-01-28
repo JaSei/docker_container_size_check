@@ -8,8 +8,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/docker/engine-api/client"
-	"github.com/docker/engine-api/types"
+	"github.com/docker/docker/client"
+	"github.com/docker/docker/api/types"
 	"github.com/olorin/nagiosplugin"
 	"golang.org/x/net/context"
 	"gopkg.in/alecthomas/kingpin.v2"
