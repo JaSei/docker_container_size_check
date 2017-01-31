@@ -55,9 +55,9 @@ func main() {
 func level(c types.Container, level int64, overrideLevelKey string) int64 {
 	newLevel, ok := c.Labels[overrideLevelKey]
 	if ok {
-		containerLevel, err := units.ParseBase2Bytes(newLevel)
+		overrideLevel, err := units.ParseBase2Bytes(newLevel)
 		if err == nil {
-			level = int64(containerLevel)
+			level = int64(overrideLevel)
 		}
 	}
 

@@ -1,11 +1,11 @@
 #Docker container size nagios/icinga check
 
 Check all containers on host.
-Default thresholds are 1GB warning and 10GB critical.
+Default thresholds are 1GB for warning and 10GB for critical.
 
 `docker_container_size_check -w 100MB -c 2GB`
 
-If is need override thresholds in specific container, then should use labels:
+If needed, you can override thresholds in a specific container by using labels.
 * CHECK_DOCKER_CONTAINER_SIZE_WARN=BYTES
 * CHECK_DOCKER_CONTAINER_SIZE_CRIT=BYTES
 
