@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/docker/engine-api/client"
-	"github.com/docker/engine-api/types"
+	"github.com/alecthomas/units"
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/client"
 	"github.com/olorin/nagiosplugin"
 	"golang.org/x/net/context"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
-const VERSION = "0.1.4"
+const VERSION = "0.2.0"
 
 var (
 	warn = kingpin.Flag("warn", "Warning treshold for image size").Short('w').Default("1GB").Bytes()
@@ -34,16 +35,31 @@ func main() {
 
 	check := nagiosplugin.NewCheck()
 	for _, c := range containers {
-		if c.SizeRw >= (int64)(*crit) {
+		warnLevel := level(c, (int64(*warn)), "CHECK_DOCKER_CONTAINER_SIZE_WARN")
+		critLevel := level(c, (int64(*crit)), "CHECK_DOCKER_CONTAINER_SIZE_CRIT")
+
+		if c.SizeRw >= warnLevel {
 			check.AddResult(nagiosplugin.CRITICAL, fmt.Sprintf("%s-%s", c.ID, c.Image))
-		} else if c.SizeRw >= (int64)(*warn) {
+		} else if c.SizeRw >= critLevel {
 			check.AddResult(nagiosplugin.WARNING, fmt.Sprintf("%s-%s", c.ID, c.Image))
 		}
 
-		check.AddPerfDatum(fmt.Sprintf("%s-%s", c.ID, c.Image), "b", (float64)(c.SizeRw), (float64)(*warn), (float64)(*crit))
+		check.AddPerfDatum(fmt.Sprintf("%s-%s", c.ID, c.Image), "b", (float64)(c.SizeRw), (float64)(warnLevel), (float64)(critLevel))
 	}
 
 	defer check.Finish()
 
 	check.AddResult(nagiosplugin.OK, "No large container(s)")
+}
+
+func level(c types.Container, level int64, overrideLevelKey string) int64 {
+	newLevel, ok := c.Labels[overrideLevelKey]
+	if ok {
+		overrideLevel, err := units.ParseBase2Bytes(newLevel)
+		if err == nil {
+			level = int64(overrideLevel)
+		}
+	}
+
+	return level
 }
