@@ -10,7 +10,7 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
-const VERSION = "0.2.0"
+const VERSION = "0.2.1"
 
 var (
 	warn = kingpin.Flag("warn", "Warning treshold for image size").Short('w').Default("1GB").Bytes()
@@ -35,16 +35,11 @@ func main() {
 
 	check := nagiosplugin.NewCheck()
 	for _, c := range containers {
-		warnLevel := level(c, (int64(*warn)), "CHECK_DOCKER_CONTAINER_SIZE_WARN")
-		critLevel := level(c, (int64(*crit)), "CHECK_DOCKER_CONTAINER_SIZE_CRIT")
+		warnThreshold := threshold(c, (int64(*warn)), "CHECK_DOCKER_CONTAINER_SIZE_WARN")
+		critThreshold := threshold(c, (int64(*crit)), "CHECK_DOCKER_CONTAINER_SIZE_CRIT")
 
-		if c.SizeRw >= warnLevel {
-			check.AddResult(nagiosplugin.CRITICAL, fmt.Sprintf("%s-%s", c.ID, c.Image))
-		} else if c.SizeRw >= critLevel {
-			check.AddResult(nagiosplugin.WARNING, fmt.Sprintf("%s-%s", c.ID, c.Image))
-		}
-
-		check.AddPerfDatum(fmt.Sprintf("%s-%s", c.ID, c.Image), "b", (float64)(c.SizeRw), (float64)(warnLevel), (float64)(critLevel))
+		check.AddResult(calcLevel(c, warnThreshold, critThreshold), fmt.Sprintf("%s-%s", c.ID, c.Image))
+		check.AddPerfDatum(fmt.Sprintf("%s-%s", c.ID, c.Image), "b", (float64)(c.SizeRw), (float64)(warnThreshold), (float64)(critThreshold))
 	}
 
 	defer check.Finish()
@@ -52,14 +47,24 @@ func main() {
 	check.AddResult(nagiosplugin.OK, "No large container(s)")
 }
 
-func level(c types.Container, level int64, overrideLevelKey string) int64 {
-	newLevel, ok := c.Labels[overrideLevelKey]
+func threshold(c types.Container, threshold int64, overrideThresholdKey string) int64 {
+	newThreshold, ok := c.Labels[overrideThresholdKey]
 	if ok {
-		overrideLevel, err := units.ParseBase2Bytes(newLevel)
+		overrideThreshold, err := units.ParseBase2Bytes(newThreshold)
 		if err == nil {
-			level = int64(overrideLevel)
+			threshold = int64(overrideThreshold)
 		}
 	}
 
-	return level
+	return threshold
+}
+
+func calcLevel(c types.Container, warnThreshold, critThreshold int64) nagiosplugin.Status {
+	if c.SizeRw >= warnThreshold && c.SizeRw < critThreshold {
+		return nagiosplugin.WARNING
+	} else if c.SizeRw >= critThreshold {
+		return nagiosplugin.CRITICAL
+	}
+
+	return nagiosplugin.OK
 }
