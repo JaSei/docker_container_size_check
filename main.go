@@ -10,11 +10,11 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
-const VERSION = "0.2.1"
+const VERSION = "0.2.2"
 
 var (
 	warn = kingpin.Flag("warn", "Warning treshold for image size").Short('w').Default("1GB").Bytes()
-	crit = kingpin.Flag("crit", "Critical treshold for image size").Short('c').Default("10GB").Bytes()
+	crit = kingpin.Flag("crit", "Critical treshold for image size").Short('c').Default("8GB").Bytes()
 )
 
 func main() {
